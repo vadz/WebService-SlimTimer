@@ -20,6 +20,8 @@ use MooseX::Method::Signatures;
 use LWP::UserAgent;
 use YAML::XS;
 
+has api_key => ( is => 'ro', isa => 'Str', required => 1 );
+
 has user_id => ( is => 'ro', isa => 'Int', writer => '_set_user_id' );
 has access_token => ( is => 'ro', isa => 'Str', writer => '_set_access_token' );
 
@@ -31,6 +33,17 @@ sub _use_yaml_for_request
     return $req;
 }
 
+# Provide a simple single-argument ctor instead of default Moose one taking a
+# hash with all attributes values.
+around BUILDARGS => sub
+{
+	die "A single API key argument is required" unless @_ == 3;
+
+	my ($orig, $class, $api_key) = @_;
+
+	$class->$orig(api_key => $api_key)
+};
+
 =method login
 
 Logs in to SlimTimer using the provided login and password.
@@ -39,13 +52,13 @@ This method must be called before doing anything else with this object.
 
 =cut
 
-method login(Str $login, Str $password, Str $api_key)
+method login(Str $login, Str $password)
 {
     my $req = HTTP::Request->new(POST => 'http://slimtimer.com/users/token');
     _use_yaml_for_request($req);
 
     my $login_params = { user => { email => $login, password => $password },
-                         api_key => $api_key };
+                         api_key => $self->api_key };
     $req->content(Dump($login_params));
 
     my $ua = LWP::UserAgent->new;

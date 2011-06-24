@@ -15,15 +15,13 @@ for ( qw( LOGIN PASSWORD API_KEY USER_ID ) ) {
 
 use WebService::SlimTimer;
 
-my $st = WebService::SlimTimer->new();
+my $st = WebService::SlimTimer->new(env_var('API_KEY'));
 
-throws_ok { $st->login('foo', 'bar', 'baz') } qr/Failed to login/,
+throws_ok { $st->login('foo', 'bar') } qr/Failed to login/,
         'Login with dummy values failed.';
 
-ok $st->login(env_var('LOGIN'), env_var('PASSWORD'), env_var('API_KEY')),
-        'Can login.';
-is $st->user_id(), env_var('USER_ID'),
-        'Got back expected user id.';
+ok $st->login(env_var('LOGIN'), env_var('PASSWORD')), 'Can login.';
+is $st->user_id(), env_var('USER_ID'), 'Got back expected user id.';
 
 done_testing();
 
