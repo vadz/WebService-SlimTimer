@@ -21,7 +21,7 @@ use warnings;
 use DateTime::Format::ISO8601;
 use Moose::Util::TypeConstraints;
 
-sub DateTime_from_YAML
+sub _DateTime_from_YAML
 {
     # For some reason we have we get spaces in data returned by SlimTimer and
     # we need to get rid of them before using ISO8601 as otherwise it fails.
@@ -31,12 +31,12 @@ sub DateTime_from_YAML
 class_type 'DateTime';
 coerce 'DateTime'
     => from 'Str'
-    => via { DateTime_from_YAML($_) };
+    => via { _DateTime_from_YAML($_) };
 
 subtype 'MaybeDateTime', as 'Maybe[DateTime]';
 coerce 'MaybeDateTime'
     => from 'Str'
-    => via { defined $_ ? DateTime_from_YAML($_) : undef };
+    => via { defined $_ ? _DateTime_from_YAML($_) : undef };
 
 has id => ( is => 'ro', isa => 'Int', required => 1 );
 has name => ( is => 'ro', isa => 'Str', required => 1 );
