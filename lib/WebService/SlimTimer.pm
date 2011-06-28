@@ -25,19 +25,52 @@ use WebService::SlimTimer::Task;
 has api_key => ( is => 'ro', isa => 'Str', required => 1 );
 
 has user_id => ( is => 'ro', isa => 'Int', writer => '_set_user_id' );
-has access_token => ( is => 'ro', isa => 'Str', writer => '_set_access_token' );
+has access_token => ( is => 'ro', isa => 'Str', writer => '_set_access_token',
+        predicate => 'is_logged_in'
+    );
 
-sub _accept_yaml
+has _user_agent => ( is => 'ro', builder => '_create_ua', lazy => 1 );
+
+### Helpers for constructing HTTP requests used in the code below
+
+method _create_ua()
 {
-    my $req = shift;
-    $req->header(Accept => 'application/x-yaml');
+    my $ua = LWP::UserAgent->new;
+    return $ua;
 }
 
-sub _use_yaml_for_post
+# This is used for GET, PUT and DELETE requests.
+method _make_request(Str $url, Str $method = 'GET')
 {
-    my $req = shift;
+    my $uri = URI->new($url);
+    $uri->query_form(
+            api_key => $self->api_key,
+            access_token => $self->access_token,
+          );
+    my $req = HTTP::Request->new($method, $uri);
+    $req->header(Accept => 'application/x-yaml');
+
+    return $req;
+}
+
+# This one is used for POST requests.
+method _make_post_request(Str $url, HashRef $params)
+{
+    my $req = HTTP::Request->new(POST => $url);
+    $req->header(Accept => 'application/x-yaml');
     $req->content_type('application/x-yaml');
-    _accept_yaml($req);
+
+    $params->{'api_key'} = $self->api_key;
+
+    # POST request is used to log in so we can be called before we have the
+    # access token and need to check for this explicitly.
+    if ( $self->is_logged_in ) {
+        $params->{'access_token'} = $self->access_token;
+    }
+
+    $req->content(Dump($params));
+
+    return $req;
 }
 
 # Provide a simple single-argument ctor instead of default Moose one taking a
@@ -61,15 +94,11 @@ This method must be called before doing anything else with this object.
 
 method login(Str $login, Str $password)
 {
-    my $req = HTTP::Request->new(POST => 'http://slimtimer.com/users/token');
-    _use_yaml_for_post($req);
+    my $req = $self->_make_post_request('http://slimtimer.com/users/token',
+            { user => { email => $login, password => $password } }
+        );
 
-    my $login_params = { user => { email => $login, password => $password },
-                         api_key => $self->api_key };
-    $req->content(Dump($login_params));
-
-    my $ua = LWP::UserAgent->new;
-    my $res = $ua->request($req);
+    my $res = $self->_user_agent->request($req);
     if ( !$res->is_success ) {
         die "Failed to login as \"$login\": " . $res->status_line
     }
@@ -104,16 +133,9 @@ Returns the list of all tasks involving the logged in user, completed or not.
 
 method list_tasks
 {
-    my $uri = URI->new($self->_get_tasks_uri);
-    $uri->query_form(
-            api_key => $self->api_key,
-            access_token => $self->access_token,
-          );
-    my $req = HTTP::Request->new(GET => $uri);
-    _accept_yaml($req);
+    my $req = $self->_make_request($self->_get_tasks_uri);
 
-    my $ua = LWP::UserAgent->new;
-    my $res = $ua->request($req);
+    my $res = $self->_user_agent->request($req);
     if ( !$res->is_success ) {
         die "Failed to get the tasks list: " . $res->status_line
     }
@@ -138,17 +160,11 @@ Create a new task with the given name.
 
 method create_task(Str $name)
 {
-    my $req = HTTP::Request->new(POST => $self->_get_tasks_uri);
-    _use_yaml_for_post($req);
+    my $req = $self->_make_post_request($self->_get_tasks_uri,
+            { task => { name => $name } }
+        );
 
-    $req->content(Dump({
-        access_token => $self->access_token,
-        api_key      => $self->api_key,
-        task         => { name => $name },
-    }));
-
-    my $ua = LWP::UserAgent->new;
-    my $res = $ua->request($req);
+    my $res = $self->_user_agent->request($req);
     if ( !$res->is_success ) {
         die "Failed to create task \"$name\": " . $res->status_line
     }
@@ -159,22 +175,15 @@ method create_task(Str $name)
 =method delete_task
 
 Delete the task with the given id (presumably previously obtained from
-L<list_tasks>.
+L<list_tasks>).
 
 =cut
 
 method delete_task(Int $task_id)
 {
-    my $uri = URI->new($self->_get_tasks_uri($task_id));
-    $uri->query_form(
-            api_key => $self->api_key,
-            access_token => $self->access_token,
-          );
-    my $req = HTTP::Request->new(DELETE => $uri);
-    _accept_yaml($req);
+    my $req = $self->_make_request($self->_get_tasks_uri($task_id), 'DELETE');
 
-    my $ua = LWP::UserAgent->new;
-    my $res = $ua->request($req);
+    my $res = $self->_user_agent->request($req);
     if ( !$res->is_success ) {
         die "Failed to delete the task $task_id: " . $res->status_line
     }
