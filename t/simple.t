@@ -7,6 +7,6 @@ BEGIN { use_ok('WebService::SlimTimer'); }
 my $st = WebService::SlimTimer->new($ENV{'SLIMTIMER_API_KEY'});
 isa_ok($st, 'WebService::SlimTimer');
 
-can_ok($st, qw(login));
+can_ok($st, qw(login list_tasks));
 
 done_testing();
