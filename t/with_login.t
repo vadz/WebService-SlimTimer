@@ -28,7 +28,8 @@ my $initial_num_tasks = $st->list_tasks;
 my $task1 = $st->create_task('First');
 isa_ok $task1, 'WebService::SlimTimer::Task';
 
-isa_ok $st->create_task('Second'), 'WebService::SlimTimer::Task';
+my $task2 = $st->create_task('Second');
+isa_ok $task2, 'WebService::SlimTimer::Task';
 
 my @tasks = $st->list_tasks;
 is scalar @tasks, $initial_num_tasks + 2, 'Two tasks created.';
@@ -36,6 +37,8 @@ is scalar @tasks, $initial_num_tasks + 2, 'Two tasks created.';
 my @tasks_with_id1 = grep { $_->id == $task1->id } @tasks;
 is scalar @tasks_with_id1, 1, 'Found the first task.';
 is $tasks_with_id1[0]->name, 'First', 'First task has correct name.';
+
+is $st->get_task($task2->id)->name, 'Second', 'Second task has correct name.';
 
 $st->delete_task($_->id) for @tasks;
 

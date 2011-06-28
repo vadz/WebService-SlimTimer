@@ -189,4 +189,22 @@ method delete_task(Int $task_id)
     }
 }
 
+=method get_task
+
+Find the given task by its id.
+
+=cut
+
+method get_task(Int $task_id)
+{
+    my $req = $self->_make_request($self->_get_tasks_uri($task_id));
+
+    my $res = $self->_user_agent->request($req);
+    if ( !$res->is_success ) {
+        die "Failed to find the task $task_id: " . $res->status_line
+    }
+
+    return WebService::SlimTimer::Task->new(Load($res->content));
+}
+
 1;
