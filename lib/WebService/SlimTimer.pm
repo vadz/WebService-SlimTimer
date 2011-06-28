@@ -40,7 +40,7 @@ method _create_ua()
 }
 
 # This is used for GET, PUT and DELETE requests.
-method _make_request(Str $url, Str $method = 'GET')
+method _make_request(Str $method, Str $url)
 {
     my $uri = URI->new($url);
     $uri->query_form(
@@ -133,7 +133,7 @@ Returns the list of all tasks involving the logged in user, completed or not.
 
 method list_tasks
 {
-    my $req = $self->_make_request($self->_get_tasks_uri);
+    my $req = $self->_make_request(GET => $self->_get_tasks_uri);
 
     my $res = $self->_user_agent->request($req);
     if ( !$res->is_success ) {
@@ -181,7 +181,7 @@ L<list_tasks>).
 
 method delete_task(Int $task_id)
 {
-    my $req = $self->_make_request($self->_get_tasks_uri($task_id), 'DELETE');
+    my $req = $self->_make_request(DELETE => $self->_get_tasks_uri($task_id));
 
     my $res = $self->_user_agent->request($req);
     if ( !$res->is_success ) {
@@ -197,7 +197,7 @@ Find the given task by its id.
 
 method get_task(Int $task_id)
 {
-    my $req = $self->_make_request($self->_get_tasks_uri($task_id));
+    my $req = $self->_make_request(GET => $self->_get_tasks_uri($task_id));
 
     my $res = $self->_user_agent->request($req);
     if ( !$res->is_success ) {
