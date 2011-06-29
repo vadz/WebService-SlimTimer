@@ -20,6 +20,8 @@ use MooseX::Method::Signatures;
 use LWP::UserAgent;
 use YAML::XS;
 
+use debug;
+
 use WebService::SlimTimer::Task;
 
 has api_key => ( is => 'ro', isa => 'Str', required => 1 );
@@ -49,6 +51,9 @@ method _make_request(Str $method, Str $url)
             access_token => $self->access_token,
           );
     my $req = HTTP::Request->new($method, $uri);
+
+    debug::log("*** About to request " . $req->as_string) if DEBUG;
+
     $req->header(Accept => 'application/x-yaml');
 
     return $req;
@@ -68,6 +73,8 @@ method _make_post(Str $method, Str $url, HashRef $params)
     }
 
     $req->content(Dump($params));
+
+    debug::log("*** About to post " . $req->as_string) if DEBUG;
 
     $req->header(Accept => 'application/x-yaml');
     $req->content_type('application/x-yaml');
