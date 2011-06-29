@@ -31,15 +31,16 @@ has access_token => ( is => 'ro', isa => 'Str', writer => '_set_access_token',
 
 has _user_agent => ( is => 'ro', builder => '_create_ua', lazy => 1 );
 
-### Helpers for constructing HTTP requests used in the code below
-
+# Create the LWP object that we use. This is currently trivial but provides a
+# central point for customizing its creation later.
 method _create_ua()
 {
     my $ua = LWP::UserAgent->new;
     return $ua;
 }
 
-# This is used for GET, PUT and DELETE requests.
+# A helper method for creating and initializing an HTTP request without
+# parameters, e.g. a GET or DELETE.
 method _make_request(Str $method, Str $url)
 {
     my $uri = URI->new($url);
@@ -53,12 +54,10 @@ method _make_request(Str $method, Str $url)
     return $req;
 }
 
-# This one is used for POST requests.
-method _make_post_request(Str $url, HashRef $params)
+# Another helper for POST and PUT requests.
+method _make_post(Str $method, Str $url, HashRef $params)
 {
-    my $req = HTTP::Request->new(POST => $url);
-    $req->header(Accept => 'application/x-yaml');
-    $req->content_type('application/x-yaml');
+    my $req = HTTP::Request->new($method, $url);
 
     $params->{'api_key'} = $self->api_key;
 
@@ -69,6 +68,9 @@ method _make_post_request(Str $url, HashRef $params)
     }
 
     $req->content(Dump($params));
+
+    $req->header(Accept => 'application/x-yaml');
+    $req->content_type('application/x-yaml');
 
     return $req;
 }
@@ -94,7 +96,7 @@ This method must be called before doing anything else with this object.
 
 method login(Str $login, Str $password)
 {
-    my $req = $self->_make_post_request('http://slimtimer.com/users/token',
+    my $req = $self->_make_post(POST => 'http://slimtimer.com/users/token',
             { user => { email => $login, password => $password } }
         );
 
@@ -160,7 +162,7 @@ Create a new task with the given name.
 
 method create_task(Str $name)
 {
-    my $req = $self->_make_post_request($self->_get_tasks_uri,
+    my $req = $self->_make_post(POST => $self->_get_tasks_uri,
             { task => { name => $name } }
         );
 
