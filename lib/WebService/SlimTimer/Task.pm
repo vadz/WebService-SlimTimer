@@ -18,14 +18,15 @@ C<list_tasks()> method.
 use strict;
 use warnings;
 
-use DateTime::Format::ISO8601;
+use DateTime::Format::RFC3339;
 use Moose::Util::TypeConstraints;
 
 sub _DateTime_from_YAML
 {
-    # For some reason we have we get spaces in data returned by SlimTimer and
-    # we need to get rid of them before using ISO8601 as otherwise it fails.
-    tr / //d; DateTime::Format::ISO8601->parse_datetime($_) 
+    # For some reason we have we get spaces between the date and time parts as
+    # well as before the time zone in the data returned by SlimTimer and we
+    # need to get rid of them before parsing as otherwise it fails.
+    s/ /T/; s/ //; DateTime::Format::RFC3339->parse_datetime($_)
 }
 
 class_type 'DateTime';
