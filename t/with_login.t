@@ -4,6 +4,8 @@ use warnings;
 use Test::More;
 use Test::Exception;
 
+use DateTime;
+
 sub env_var { $ENV{'SLIMTIMER_' . shift} }
 
 for ( qw( LOGIN PASSWORD API_KEY USER_ID ) ) {
@@ -39,6 +41,11 @@ is scalar @tasks_with_id1, 1, 'Found the first task.';
 is $tasks_with_id1[0]->name, 'First', 'First task has correct name.';
 
 is $st->get_task($task2->id)->name, 'Second', 'Second task has correct name.';
+
+my $completed_date = DateTime->now;
+$st->complete_task($task1->id, $completed_date);
+is $st->get_task($task1->id)->completed_on, $completed_date,
+    'First task is now completed.';
 
 $st->delete_task($_->id) for @tasks;
 

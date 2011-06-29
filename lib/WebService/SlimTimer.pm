@@ -16,13 +16,18 @@ SlimTimer web site.
 
 use Moose;
 use MooseX::Method::Signatures;
+use Moose::Util::TypeConstraints;
 
 use LWP::UserAgent;
 use YAML::XS;
+use DateTime;
+use DateTime::Format::RFC3339;
 
 use debug;
 
 use WebService::SlimTimer::Task;
+
+class_type 'DateTime';
 
 has api_key => ( is => 'ro', isa => 'Str', required => 1 );
 
@@ -214,6 +219,26 @@ method get_task(Int $task_id)
     }
 
     return WebService::SlimTimer::Task->new(Load($res->content));
+}
+
+=method complete_task
+
+Mark the task with the given id as being completed.
+
+=cut
+
+method complete_task(Int $task_id, DateTime $completed_on)
+{
+    my $req = $self->_make_post(PUT => $self->_get_tasks_uri($task_id),
+            { task => { completed_on =>
+                    DateTime::Format::RFC3339->format_datetime($completed_on)
+                } }
+        );
+
+    my $res = $self->_user_agent->request($req);
+    if ( !$res->is_success ) {
+        die "Failed to mark the task $task_id as completed: " . $res->status_line
+    }
 }
 
 1;
