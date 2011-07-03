@@ -21,13 +21,12 @@ use MooseX::Types::Moose qw(Int Str);
 
 use LWP::UserAgent;
 use YAML::XS;
-use DateTime;
-use DateTime::Format::RFC3339;
 
 use debug;
 
 use WebService::SlimTimer::Task;
-use WebService::SlimTimer::Types qw(TimeStamp);
+use WebService::SlimTimer::TimeEntry;
+use WebService::SlimTimer::Types qw(TimeStamp OptionalTimeStamp);
 
 has api_key => ( is => 'ro', isa => Str, required => 1 );
 
@@ -37,6 +36,13 @@ has access_token => ( is => 'ro', isa => Str, writer => '_set_access_token',
     );
 
 has _user_agent => ( is => 'ro', builder => '_create_ua', lazy => 1 );
+
+# Return a string representation of a TimeStamp.
+method _format_time(TimeStamp $timestamp)
+{
+    use DateTime::Format::RFC3339;
+    return DateTime::Format::RFC3339->format_datetime($timestamp)
+}
 
 # Create the LWP object that we use. This is currently trivial but provides a
 # central point for customizing its creation later.
@@ -48,12 +54,13 @@ method _create_ua()
 
 # A helper method for creating and initializing an HTTP request without
 # parameters, e.g. a GET or DELETE.
-method _make_request(Str $method, Str $url)
+method _make_request(Str $method, Str $url, HashRef $params?)
 {
     my $uri = URI->new($url);
     $uri->query_form(
             api_key => $self->api_key,
             access_token => $self->access_token,
+            %$params
           );
     my $req = HTTP::Request->new($method, $uri);
 
@@ -230,15 +237,101 @@ Mark the task with the given id as being completed.
 method complete_task(Int $task_id, TimeStamp $completed_on)
 {
     my $req = $self->_make_post(PUT => $self->_get_tasks_uri($task_id),
-            { task => { completed_on =>
-                    DateTime::Format::RFC3339->format_datetime($completed_on)
-                } }
+            { task => { completed_on => $self->_format_time($completed_on) } }
         );
 
     my $res = $self->_user_agent->request($req);
     if ( !$res->is_success ) {
         die "Failed to mark the task $task_id as completed: " . $res->status_line
     }
+}
+
+
+
+# Helper for time-entry-related methods: returns either the root time entries
+# URI or the URI for the given entry if the time entry id is specified.
+method _get_entries_uri(Int $entry_id?)
+{
+    my $uri = "http://slimtimer.com/users/$self->{user_id}/time_entries";
+    if ( defined $entry_id ) {
+        $uri .= "/$entry_id"
+    }
+
+    return $uri
+}
+
+# Common part of list_entries() and list_task_entries()
+method _list_entries(Int $taskId, OptionalTimeStamp $start, OptionalTimeStamp $end)
+{
+    my $uri = defined $taskId
+                ? $self->_get_tasks_uri($taskId) . "/time_entries"
+                : $self->_get_entries_uri;
+
+    my %params;
+    $params{'range_start'} = $self->_format_time($start) if defined $start;
+    $params{'range_end'} = $self->_format_time($end) if defined $end;
+
+    my $req = $self->_make_request(GET => $uri, \%params);
+
+    my $res = $self->_user_agent->request($req);
+    if ( !$res->is_success ) {
+        die "Failed to get the entries list: " . $res->status_line
+    }
+
+    my $entries = Load($res->content);
+
+    my @time_entries;
+    for (@$entries) {
+        push @time_entries, WebService::SlimTimer::TimeEntry->new($_);
+    }
+
+    return @time_entries;
+}
+
+=method list_entries
+
+Return all the time entries.
+
+If the optional C<start> and/or C<end> parameters are specified, returns only
+the entries that begin after the start date and/or before the end one.
+
+=cut
+
+method list_entries(TimeStamp :$start, TimeStamp :$end)
+{
+    return $self->_list_entries(undef, $start, $end);
+}
+
+=method list_task_entries
+
+Return all the time entries for the given task.
+
+Just as L<list_entries>, this method accepts optional C<start> and C<end>
+parameters to restrict the dates of the entries retrieved.
+
+=cut
+
+method list_task_entries(Int $taskId, TimeStamp :$start, TimeStamp :$end)
+{
+    return $self->_list_entries($taskId, $start, $end);
+}
+
+=method get_entry
+
+Find the given time entry by its id.
+
+=cut
+
+method get_entry(Int $entryId)
+{
+    my $req = $self->_make_request(GET => $self->_get_entries_uri($entryId));
+
+    my $res = $self->_user_agent->request($req);
+    if ( !$res->is_success ) {
+        die "Failed to get the entry $entryId: " . $res->status_line
+    }
+
+    return WebService::SlimTimer::TimeEntry->new(Load($res->content));
 }
 
 1;
