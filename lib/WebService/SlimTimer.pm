@@ -17,6 +17,7 @@ SlimTimer web site.
 use Moose;
 use MooseX::Method::Signatures;
 use Moose::Util::TypeConstraints;
+use MooseX::Types::Moose qw(Int Str);
 
 use LWP::UserAgent;
 use YAML::XS;
@@ -26,13 +27,12 @@ use DateTime::Format::RFC3339;
 use debug;
 
 use WebService::SlimTimer::Task;
+use WebService::SlimTimer::Types qw(TimeStamp);
 
-class_type 'DateTime';
+has api_key => ( is => 'ro', isa => Str, required => 1 );
 
-has api_key => ( is => 'ro', isa => 'Str', required => 1 );
-
-has user_id => ( is => 'ro', isa => 'Int', writer => '_set_user_id' );
-has access_token => ( is => 'ro', isa => 'Str', writer => '_set_access_token',
+has user_id => ( is => 'ro', isa => Int, writer => '_set_user_id' );
+has access_token => ( is => 'ro', isa => Str, writer => '_set_access_token',
         predicate => 'is_logged_in'
     );
 
@@ -227,7 +227,7 @@ Mark the task with the given id as being completed.
 
 =cut
 
-method complete_task(Int $task_id, DateTime $completed_on)
+method complete_task(Int $task_id, TimeStamp $completed_on)
 {
     my $req = $self->_make_post(PUT => $self->_get_tasks_uri($task_id),
             { task => { completed_on =>
