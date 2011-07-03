@@ -18,33 +18,14 @@ C<list_tasks()> method.
 use strict;
 use warnings;
 
-use DateTime::Format::RFC3339;
-use Moose::Util::TypeConstraints;
-
-sub _DateTime_from_YAML
-{
-    # For some reason we have we get spaces between the date and time parts as
-    # well as before the time zone in the data returned by SlimTimer and we
-    # need to get rid of them before parsing as otherwise it fails.
-    s/ /T/; s/ //; DateTime::Format::RFC3339->parse_datetime($_)
-}
-
-class_type 'DateTime';
-coerce 'DateTime'
-    => from 'Str'
-    => via { _DateTime_from_YAML($_) };
-
-subtype 'MaybeDateTime', as 'Maybe[DateTime]';
-coerce 'MaybeDateTime'
-    => from 'Str'
-    => via { defined $_ ? _DateTime_from_YAML($_) : undef };
+use WebService::SlimTimer::Types qw(TimeStamp OptionalTimeStamp);
 
 has id => ( is => 'ro', isa => 'Int', required => 1 );
 has name => ( is => 'ro', isa => 'Str', required => 1 );
-has created_at => ( is => 'ro', isa => 'DateTime', required => 1, coerce => 1 );
-has updated_at => ( is => 'ro', isa => 'DateTime', required => 1, coerce => 1 );
+has created_at => ( is => 'ro', isa => TimeStamp, required => 1, coerce => 1 );
+has updated_at => ( is => 'ro', isa => TimeStamp, required => 1, coerce => 1 );
 has hours => ( is => 'ro', isa => 'Num', required => 1 );
-has completed_on => ( is => 'ro', isa => 'MaybeDateTime', coerce => 1 );
+has completed_on => ( is => 'ro', isa => OptionalTimeStamp, coerce => 1 );
 
 # TODO: Add more fields:
 #   - role: comma-separated list of (owner, coworker, reporter)
