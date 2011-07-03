@@ -18,13 +18,14 @@ C<list_tasks()> method.
 use strict;
 use warnings;
 
+use MooseX::Types::Moose qw(Int Num Str);
 use WebService::SlimTimer::Types qw(TimeStamp OptionalTimeStamp);
 
-has id => ( is => 'ro', isa => 'Int', required => 1 );
-has name => ( is => 'ro', isa => 'Str', required => 1 );
+has id => ( is => 'ro', isa => Int, required => 1 );
+has name => ( is => 'ro', isa => Str, required => 1 );
 has created_at => ( is => 'ro', isa => TimeStamp, required => 1, coerce => 1 );
 has updated_at => ( is => 'ro', isa => TimeStamp, required => 1, coerce => 1 );
-has hours => ( is => 'ro', isa => 'Num', required => 1 );
+has hours => ( is => 'ro', isa => Num, required => 1 );
 has completed_on => ( is => 'ro', isa => OptionalTimeStamp, coerce => 1 );
 
 # TODO: Add more fields:
