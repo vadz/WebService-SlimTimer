@@ -66,9 +66,24 @@ method _create_ua()
     return $ua;
 }
 
-# A helper method for creating and initializing an HTTP request without
-# parameters, e.g. a GET or DELETE.
-method _make_request(Str $method, Str $url, HashRef $params?)
+# Common part of _request() and _post(): submit the request and check that it
+# didn't fail.
+method _submit($req, Str $error)
+{
+    my $res = $self->_user_agent->request($req);
+
+    debug::log("*** Received " . $res->content) if DEBUG;
+
+    if ( !$res->is_success ) {
+        die "$error: " . $res->status_line
+    }
+
+    return Load($res->content)
+}
+
+# A helper method for creating and submitting an HTTP request without
+# any body parameters, e.g. a GET or DELETE.
+method _request(Str $method, Str $url, Str :$error!, HashRef :$params)
 {
     my $uri = URI->new($url);
     $uri->query_form(
@@ -82,11 +97,11 @@ method _make_request(Str $method, Str $url, HashRef $params?)
 
     $req->header(Accept => 'application/x-yaml');
 
-    return $req;
+    return $self->_submit($req, $error)
 }
 
 # Another helper for POST and PUT requests.
-method _make_post(Str $method, Str $url, HashRef $params)
+method _post(Str $method, Str $url, HashRef $params, Str :$error!)
 {
     my $req = HTTP::Request->new($method, $url);
 
@@ -105,7 +120,7 @@ method _make_post(Str $method, Str $url, HashRef $params)
     $req->header(Accept => 'application/x-yaml');
     $req->content_type('application/x-yaml');
 
-    return $req;
+    return $self->_submit($req, $error)
 }
 
 # Provide a simple single-argument ctor instead of default Moose one taking a
@@ -129,22 +144,13 @@ This method must be called before doing anything else with this object.
 
 method login(Str $login, Str $password)
 {
-    my $req = $self->_make_post(POST => 'http://slimtimer.com/users/token',
-            { user => { email => $login, password => $password } }
+    my $res = $self->_post(POST => 'http://slimtimer.com/users/token',
+            { user => { email => $login, password => $password } },
+            error => "Failed to login as \"$login\""
         );
 
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to login as \"$login\": " . $res->status_line
-    }
-
-    my $retval = Load($res->content);
-    if ( exists $retval->{':error:'} ) {
-        die "Failed to login as \"$login\": " . $retval->{':error:'}
-    }
-
-    $self->_set_user_id($retval->{'user_id'});
-    $self->_set_access_token($retval->{'access_token'})
+    $self->_set_user_id($res->{user_id});
+    $self->_set_access_token($res->{access_token})
 }
 
 
@@ -168,17 +174,12 @@ Returns the list of all tasks involving the logged in user, completed or not.
 
 method list_tasks
 {
-    my $req = $self->_make_request(GET => $self->_get_tasks_uri);
-
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to get the tasks list: " . $res->status_line
-    }
+    my $tasks_entries = $self->_request(GET => $self->_get_tasks_uri,
+                error => "Failed to get the tasks list"
+            );
 
     # The expected reply structure is an array of hashes corresponding to each
     # task.
-    my $tasks_entries = Load($res->content);
-
     my @tasks;
     for (@$tasks_entries) {
         push @tasks, WebService::SlimTimer::Task->new(%$_);
@@ -195,16 +196,12 @@ Create a new task with the given name.
 
 method create_task(Str $name)
 {
-    my $req = $self->_make_post(POST => $self->_get_tasks_uri,
-            { task => { name => $name } }
+    my $res = $self->_post(POST => $self->_get_tasks_uri,
+            { task => { name => $name } },
+            error => "Failed to create task \"$name\""
         );
 
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to create task \"$name\": " . $res->status_line
-    }
-
-    return WebService::SlimTimer::Task->new(Load($res->content));
+    return WebService::SlimTimer::Task->new($res);
 }
 
 =method delete_task
@@ -216,12 +213,9 @@ L<list_tasks>).
 
 method delete_task(Int $task_id)
 {
-    my $req = $self->_make_request(DELETE => $self->_get_tasks_uri($task_id));
-
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to delete the task $task_id: " . $res->status_line
-    }
+    $self->_request(DELETE => $self->_get_tasks_uri($task_id),
+            error => "Failed to delete the task $task_id"
+        );
 }
 
 =method get_task
@@ -232,14 +226,11 @@ Find the given task by its id.
 
 method get_task(Int $task_id)
 {
-    my $req = $self->_make_request(GET => $self->_get_tasks_uri($task_id));
+    my $res = $self->_request(GET => $self->_get_tasks_uri($task_id),
+            error => "Failed to find the task $task_id"
+        );
 
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to find the task $task_id: " . $res->status_line
-    }
-
-    return WebService::SlimTimer::Task->new(Load($res->content));
+    return WebService::SlimTimer::Task->new($res);
 }
 
 =method complete_task
@@ -250,14 +241,10 @@ Mark the task with the given id as being completed.
 
 method complete_task(Int $task_id, TimeStamp $completed_on)
 {
-    my $req = $self->_make_post(PUT => $self->_get_tasks_uri($task_id),
-            { task => { completed_on => $self->_format_time($completed_on) } }
+    $self->_post(PUT => $self->_get_tasks_uri($task_id),
+            { task => { completed_on => $self->_format_time($completed_on) } },
+            error => "Failed to mark the task $task_id as completed"
         );
-
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to mark the task $task_id as completed: " . $res->status_line
-    }
 }
 
 
@@ -288,14 +275,10 @@ method _list_entries(
     $params{'range_start'} = $self->_format_time($start) if defined $start;
     $params{'range_end'} = $self->_format_time($end) if defined $end;
 
-    my $req = $self->_make_request(GET => $uri, \%params);
-
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to get the entries list: " . $res->status_line
-    }
-
-    my $entries = Load($res->content);
+    my $entries = $self->_request(GET => $uri,
+                params => \%params,
+                error => "Failed to get the entries list"
+            );
 
     my @time_entries;
     for (@$entries) {
@@ -341,14 +324,11 @@ Find the given time entry by its id.
 
 method get_entry(Int $entryId)
 {
-    my $req = $self->_make_request(GET => $self->_get_entries_uri($entryId));
+    my $res = $self->_request(GET => $self->_get_entries_uri($entryId),
+                error => "Failed to get the entry $entryId"
+            );
 
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to get the entry $entryId: " . $res->status_line
-    }
-
-    return WebService::SlimTimer::TimeEntry->new(Load($res->content));
+    return WebService::SlimTimer::TimeEntry->new($res);
 }
 
 =method create_entry
@@ -368,21 +348,18 @@ method create_entry(Int $taskId, TimeStamp $start, TimeStamp $end?)
 {
     $end = DateTime->now if !defined $end;
 
-    my $req = $self->_make_post(POST => $self->_get_entries_uri, {
-                time_entry => {
-                    task_id => $taskId,
-                    start_time => $self->_format_time($start),
-                    end_time => $self->_format_time($end),
-                    duration_in_seconds => $end->epoch() - $start->epoch(),
-                }
-            });
+    my $res = $self->_post(POST => $self->_get_entries_uri, {
+                    time_entry => {
+                        task_id => $taskId,
+                        start_time => $self->_format_time($start),
+                        end_time => $self->_format_time($end),
+                        duration_in_seconds => $end->epoch() - $start->epoch(),
+                    }
+                },
+                error => "Failed to create new entry for task $taskId"
+            );
 
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to create new entry for task $taskId: " . $res->status_line
-    }
-
-    return WebService::SlimTimer::TimeEntry->new(Load($res->content));
+    return WebService::SlimTimer::TimeEntry->new($res);
 }
 
 =method update_entry
@@ -393,19 +370,16 @@ Changes an existing time entry.
 
 method update_entry(Int $entry_id, Int $taskId, TimeStamp $start, TimeStamp $end)
 {
-    my $req = $self->_make_post(PUT => $self->_get_entries_uri($entry_id), {
+    $self->_post(PUT => $self->_get_entries_uri($entry_id), {
                 time_entry => {
                     task_id => $taskId,
                     start_time => $self->_format_time($start),
                     end_time => $self->_format_time($end),
                     duration_in_seconds => $end->epoch() - $start->epoch(),
                 }
-            });
-
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to update the entry $entry_id: " . $res->status_line
-    }
+            },
+            error => "Failed to update the entry $entry_id"
+        );
 }
 
 =method delete_entry
@@ -416,12 +390,9 @@ Deletes a time entry.
 
 method delete_entry(Int $entry_id)
 {
-    my $req = $self->_make_request(DELETE => $self->_get_entries_uri($entry_id));
-
-    my $res = $self->_user_agent->request($req);
-    if ( !$res->is_success ) {
-        die "Failed to delete the entry $entry_id: " . $res->status_line
-    }
+    $self->_request(DELETE => $self->_get_entries_uri($entry_id),
+            error => "Failed to delete the entry $entry_id"
+        );
 }
 
 1;
