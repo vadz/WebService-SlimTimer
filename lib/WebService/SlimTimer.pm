@@ -351,4 +351,77 @@ method get_entry(Int $entryId)
     return WebService::SlimTimer::TimeEntry->new(Load($res->content));
 }
 
+=method create_entry
+
+Create a new time entry.
+
+Notice that the time stamps should normally be in UTC and not local time or
+another time zone.
+
+If the C<end> parameter is not specified, it defaults to now.
+
+Returns the entry that was created.
+
+=cut
+
+method create_entry(Int $taskId, TimeStamp $start, TimeStamp $end?)
+{
+    $end = DateTime->now if !defined $end;
+
+    my $req = $self->_make_post(POST => $self->_get_entries_uri, {
+                time_entry => {
+                    task_id => $taskId,
+                    start_time => $self->_format_time($start),
+                    end_time => $self->_format_time($end),
+                    duration_in_seconds => $end->epoch() - $start->epoch(),
+                }
+            });
+
+    my $res = $self->_user_agent->request($req);
+    if ( !$res->is_success ) {
+        die "Failed to create new entry for task $taskId: " . $res->status_line
+    }
+
+    return WebService::SlimTimer::TimeEntry->new(Load($res->content));
+}
+
+=method update_entry
+
+Changes an existing time entry.
+
+=cut
+
+method update_entry(Int $entry_id, Int $taskId, TimeStamp $start, TimeStamp $end)
+{
+    my $req = $self->_make_post(PUT => $self->_get_entries_uri($entry_id), {
+                time_entry => {
+                    task_id => $taskId,
+                    start_time => $self->_format_time($start),
+                    end_time => $self->_format_time($end),
+                    duration_in_seconds => $end->epoch() - $start->epoch(),
+                }
+            });
+
+    my $res = $self->_user_agent->request($req);
+    if ( !$res->is_success ) {
+        die "Failed to update the entry $entry_id: " . $res->status_line
+    }
+}
+
+=method delete_entry
+
+Deletes a time entry.
+
+=cut
+
+method delete_entry(Int $entry_id)
+{
+    my $req = $self->_make_request(DELETE => $self->_get_entries_uri($entry_id));
+
+    my $res = $self->_user_agent->request($req);
+    if ( !$res->is_success ) {
+        die "Failed to delete the entry $entry_id: " . $res->status_line
+    }
+}
+
 1;
