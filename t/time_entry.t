@@ -43,6 +43,8 @@ my $te = WebService::SlimTimer::TimeEntry->new(Load($entry_desc));
 isa_ok $te, 'WebService::SlimTimer::TimeEntry';
 
 is $te->id, 66666, 'Id is ok.';
+is $te->task_id, 999, 'Task id is ok.';
+is $te->task_name, 'Foo', 'Task name is ok.';
 is $te->duration, 4685, 'Duration is ok.';
 
 my $created_at = DateTime->new(
