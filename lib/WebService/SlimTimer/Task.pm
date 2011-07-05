@@ -13,6 +13,10 @@ The objects of this class repesent a SlimTimer task. These objects are not
 created directly but rather retrieved from L<WebService::SlimTimer> using its
 C<list_tasks()> method.
 
+=head1 SEE ALSO
+
+L<WebService::SlimTimer>
+
 =cut
 
 use strict;

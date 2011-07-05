@@ -12,6 +12,20 @@ This module provides interface to L<http://www.slimtimer.com/> functionality.
 Notice that to use it you must obtain an API key by creating an account at
 SlimTimer web site.
 
+=head1 SEE ALSO
+
+L<WebService::SlimTimer::Task>, L<WebService::SlimTimer::TimeEntry>
+
+=head1 BUGS
+
+Currently the C<offset> parameter is not used by C<list_tasks> and
+C<list_entries> and C<list_task_entries> methods, so they are limited to 50
+tasks for the first one and 5000 entries for the latter two and accessing the
+subsequent results is impossible.
+
+Access to the comments and tags of the tasks and time entries objects is not
+implemented yet.
+
 =cut
 
 use Moose;

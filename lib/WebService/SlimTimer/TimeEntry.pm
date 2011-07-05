@@ -12,6 +12,10 @@ class WebService::SlimTimer::TimeEntry
 The objects of this class repesent a single entry spent on some SlimTimer
 task.
 
+=head1 SEE ALSO
+
+L<WebService::SlimTimer>
+
 =cut
 
 use strict;
