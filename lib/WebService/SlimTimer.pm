@@ -261,7 +261,10 @@ method _get_entries_uri(Int $entry_id?)
 }
 
 # Common part of list_entries() and list_task_entries()
-method _list_entries(Int $taskId, OptionalTimeStamp $start, OptionalTimeStamp $end)
+method _list_entries(
+    Maybe[Int] $taskId,
+    OptionalTimeStamp $start,
+    OptionalTimeStamp $end)
 {
     my $uri = defined $taskId
                 ? $self->_get_tasks_uri($taskId) . "/time_entries"
