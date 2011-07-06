@@ -1,16 +1,16 @@
 #!/usr/bin/env perl
 
-# PODNAME: timer-report
+# PODNAME: slimtimer-report
 #
 # ABSTRACT: Simple script to report all SlimTimer entries in the given interval.
 
 =head1 SYNOPSIS
 
-timer-report [start-date [end-date]]
+slimtimer-report [start-date [end-date]]
 
 For example:
 
-  timer-report today
+  slimtimer-report today
 
 =head1 OPTIONS
 
