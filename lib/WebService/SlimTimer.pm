@@ -10,7 +10,22 @@ package WebService::SlimTimer;
 This module provides interface to L<http://www.slimtimer.com/> functionality.
 
 Notice that to use it you must obtain an API key by creating an account at
-SlimTimer web site.
+SlimTimer web site and then visit L<http://slimtimer.com/help/api>.
+
+    my $st = WebService::SlimTimer->new($api_key);
+    $st->login('your@email.address', 'secret-password');
+
+    # Create a brand new task.
+    my $task = $st->create_task('Testing SlimTimer');
+
+    # Spend 10 minutes on testing.
+    $st->create_entry($task->id, DateTime->now, DateTime->from_epoch(time() + 600));
+
+    # Mark the task as completed.
+    $st->complete_task($task->id, DateTime->now());
+
+    # Or maybe even get rid of it now.
+    $st->delete_task($task->id);
 
 =head1 SEE ALSO
 

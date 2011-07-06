@@ -11,7 +11,43 @@ class WebService::SlimTimer::Task
 
 The objects of this class repesent a SlimTimer task. These objects are not
 created directly but rather retrieved from L<WebService::SlimTimer> using its
-C<list_tasks()> method.
+C<list_tasks()> or C<get_task()> methods.
+
+    # Print the time spent on each task.
+    my @tasks = $st->list_tasks();
+    for my $task (@tasks) {
+        printf "%-30s %9.2f\n", $task->name, $task->hours
+    }
+
+=attr id
+
+Numeric task id. The id never changes after the task creation and can be
+cached locally.
+
+=attr name
+
+The task name as an arbitrary string. Notice that it is possible, although
+confusing, to have more than one task with the same name, use C<id> to
+uniquely identify the task.
+
+=attr created_at
+
+The time when the task was created.
+
+=attr updated_at
+
+The time when the task was last updated.
+
+=attr hours
+
+Total hours spent on this task as recorded on the server. This is a floating
+point number.
+
+=attr completed_on
+
+Boolean flag indicating whether the task was completed. The tasks created with
+L<WebService::SlimTimer/create_task> are not initially completed, use
+L<WebService::SlimTimer/complete_task> to mark them as completed.
 
 =head1 SEE ALSO
 

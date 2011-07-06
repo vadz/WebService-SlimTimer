@@ -10,7 +10,50 @@ class WebService::SlimTimer::TimeEntry
 =head1 SYNOPSIS
 
 The objects of this class repesent a single entry spent on some SlimTimer
-task.
+task. Just as L<WebService::SlimTimer::Task> objects, they are never created
+directly but are returned by L<WebService::SlimTimer> methods such as
+C<list_entries()> or C<get_entry()>.
+
+    my @entries = $st->list_entries(start => ..., end => ...);
+    my $total = 0;
+    for my $e (@entries) {
+        $total += $e->duration;
+    }
+
+    print "Total time spent during the given interval $total seconds.\n";
+
+=attr id
+
+The unique numeric id of the entry.
+
+=attr task_id
+
+The numeric id of the associated task.
+
+=attr task_name
+
+The name of the associated task, provided as a convenience to avoid the need
+for calling L<WebService::SlimTimer/get_task> just to retrieve it.
+
+=attr start_time
+
+The time when the entry started.
+
+=attr end_time
+
+The time when the entry ended.
+
+=attr duration
+
+Duration of the entry in seconds.
+
+=attr created_at
+
+The time when the entry itself was created.
+
+=attr updated_at
+
+The time when the entry was last modified.
 
 =head1 SEE ALSO
 
