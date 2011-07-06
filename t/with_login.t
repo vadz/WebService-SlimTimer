@@ -47,6 +47,34 @@ $st->complete_task($task1->id, $completed_date);
 is $st->get_task($task1->id)->completed_on, $completed_date,
     'First task is now completed.';
 
+my $start = DateTime->new(
+        year => 2011, month => 7, day => 6,
+        hour => 11, minute => 7,
+        time_zone => 0
+    );
+my $end = DateTime->new(
+        year => 2011, month => 7, day => 6,
+        hour => 12, minute => 5,
+        time_zone => 0
+    );
+
+my $entry = $st->create_entry($task2->id, $start, $end);
+isa_ok $entry, 'WebService::SlimTimer::TimeEntry';
+is $entry->duration, 3480, 'New entry duration is correct.';
+is $entry->start_time->hour, 11, 'New entry start hour is correct.';
+
+$end->set_hour(14);
+$st->update_entry($entry->id, $task2->id, $start, $end);
+
+my @entries = $st->list_entries;
+is scalar @entries, 1, 'Just created entry could be retrieved.';
+
+is $entries[0]->task_name, 'Second', 'Entry task has correct name.';
+is $entries[0]->end_time->hour, $end->hour, 'End time was updated correctly.';
+
+$st->delete_entry($entry->id);
+is scalar $st->list_entries, 0, 'No entries remain.';
+
 $st->delete_task($_->id) for @tasks;
 
 is scalar $st->list_tasks, 0, 'No tasks remain.';
