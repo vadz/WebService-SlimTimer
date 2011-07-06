@@ -183,13 +183,23 @@ method _get_tasks_uri(Int $task_id?)
 
 =method list_tasks
 
-Returns the list of all tasks involving the logged in user, completed or not.
+Returns the list of all tasks involving the logged in user:
+
+    my @tasks = $st->list_tasks();
+
+By default all tasks are returned, even the completed ones. Passing a false
+value as parameter excludes the completed tasks:
+
+    my @active_tasks = $st->list_tasks(0);
 
 =cut
 
-method list_tasks
+method list_tasks(Bool $include_completed = 1)
 {
     my $tasks_entries = $self->_request(GET => $self->_get_tasks_uri,
+                params => {
+                    show_completed => $include_completed ? 'yes' : 'no'
+                },
                 error => "Failed to get the tasks list"
             );
 
