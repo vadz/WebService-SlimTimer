@@ -51,10 +51,44 @@ use warnings;
 use DateTime;
 use File::Spec;
 use File::Slurp;
+use Getopt::Long::Descriptive;
 use YAML::XS;
 
 use WebService::SlimTimer;
 
+# Parse the command line first.
+my ($opt, $usage) = describe_options(
+        '%c %o [start-date [end-date]]',
+        [ 'help'        => 'Print usage message and exit.' ]
+    );
+
+print($usage->text), exit if $opt->help;
+
+my %range;
+if ( @ARGV > 2 ) {
+    die "Too many arguments.\nUsage: " . $usage->text
+}
+
+if ( @ARGV > 0 ) {
+    use DateTime::Format::Natural;
+
+    my $parser = DateTime::Format::Natural->new;
+
+    $range{start} = $parser->parse_datetime($ARGV[0]);
+    if ( !$parser->success ) {
+        die "Incorrect start date: " . $parser->error . "\n"
+    }
+
+    if ( @ARGV == 2 ) {
+        $range{end} = $parser->parse_datetime($ARGV[1]);
+        if ( !$parser->success ) {
+            die "Incorrect end date: " . $parser->error . "\n"
+        }
+    }
+}
+
+
+# Check the config file next, we need it to do anything non-trivial.
 my $config_file;
 if ( $^O eq 'MSWin32' ) {
     $config_file = File::Spec->catfile($ENV{APPDATA}, "slimtimer.ini");
@@ -89,29 +123,6 @@ for (qw(api_key login password)) {
 
 my $st = WebService::SlimTimer->new($config->{api_key});
 $st->login($config->{login}, $config->{password});
-
-my %range;
-if ( @ARGV > 2 ) {
-    die "Too many arguments.\nUsage: $0 [start-date [end-date]]\n"
-}
-
-if ( @ARGV > 0 ) {
-    use DateTime::Format::Natural;
-
-    my $parser = DateTime::Format::Natural->new;
-
-    $range{start} = $parser->parse_datetime($ARGV[0]);
-    if ( !$parser->success ) {
-        die "Incorrect start date: " . $parser->error . "\n"
-    }
-
-    if ( @ARGV == 2 ) {
-        $range{end} = $parser->parse_datetime($ARGV[1]);
-        if ( !$parser->success ) {
-            die "Incorrect end date: " . $parser->error . "\n"
-        }
-    }
-}
 
 my @entries = $st->list_entries(%range);
 
