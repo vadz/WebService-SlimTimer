@@ -99,7 +99,7 @@ method _submit($req, Str $error)
 {
     my $res = $self->_user_agent->request($req);
 
-    debug::log("*** Received " . $res->content) if DEBUG;
+    debug::log(DateTime->now() . ": received " . $res->content) if DEBUG;
 
     if ( !$res->is_success ) {
         die "$error: " . $res->status_line
@@ -120,7 +120,7 @@ method _request(Str $method, Str $url, Str :$error!, HashRef :$params)
           );
     my $req = HTTP::Request->new($method, $uri);
 
-    debug::log("*** About to request " . $req->as_string) if DEBUG;
+    debug::log(DateTime->now() . ": about to request " . $req->as_string) if DEBUG;
 
     $req->header(Accept => 'application/x-yaml');
 
@@ -142,7 +142,7 @@ method _post(Str $method, Str $url, HashRef $params, Str :$error!)
 
     $req->content(Dump($params));
 
-    debug::log("*** About to post " . $req->as_string) if DEBUG;
+    debug::log(DateTime->now() . ": about to post " . $req->as_string) if DEBUG;
 
     $req->header(Accept => 'application/x-yaml');
     $req->content_type('application/x-yaml');
