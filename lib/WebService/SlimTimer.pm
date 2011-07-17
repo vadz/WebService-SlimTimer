@@ -200,11 +200,14 @@ method _get_tasks_uri(Int $task_id?)
 Returns the list of all tasks involving the logged in user:
 
     my @tasks = $st->list_tasks();
+    say join("\n", map { $_->name } @tasks); # Output the names of all tasks
 
 By default all tasks are returned, even the completed ones. Passing a false
 value as parameter excludes the completed tasks:
 
     my @active_tasks = $st->list_tasks(0);
+
+See L<WebService::SlimTimer::Task> for the details of the returned objects.
 
 =cut
 
@@ -230,7 +233,7 @@ method list_tasks(Bool $include_completed = 1)
 =method create_task
 
 Create a new task with the given name and returns the new
-L<WebService::SlimTimer::Tasl> object on success.
+L<WebService::SlimTimer::Task> object on success.
 
     my $task = $st->create_task('Test Task');
     ... Use $task->id with the other methods ...
