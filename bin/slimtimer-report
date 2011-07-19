@@ -163,7 +163,7 @@ else { # Report for all tasks.
     sub report_one_task
     {
         my ($name, $duration) = @_;
-        printf "%-40s%4d:%02d:%02d\n", $name, format_time($duration)
+        printf "%-40s%10s\n", $name, format_time($duration)
     }
 
     my $total = 0;
