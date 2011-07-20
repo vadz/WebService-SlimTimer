@@ -27,18 +27,6 @@ SlimTimer web site and then visit L<http://slimtimer.com/help/api>.
     # Or maybe even get rid of it now.
     $st->delete_task($task->id);
 
-=head1 CONSTRUCTOR
-
-The single required constructor argument is the API key required to connect to
-SlimTimer:
-
-    my $st = WebService::SlimTimer->new('123456789abcdef123456789abcdef');
-
-The validity of the API key is not checked here but using an invalid key will
-result in a failure to C<login()> later.
-
-=cut
-
 =head1 SEE ALSO
 
 L<WebService::SlimTimer::Task>, L<WebService::SlimTimer::TimeEntry>
@@ -161,6 +149,18 @@ method _post(Str $method, Str $url, HashRef $params, Str :$error!)
 
     return $self->_submit($req, $error)
 }
+
+=method CONSTRUCTOR
+
+The single required constructor argument is the API key required to connect to
+SlimTimer:
+
+    my $st = WebService::SlimTimer->new('123456789abcdef123456789abcdef');
+
+The validity of the API key is not checked here but using an invalid key will
+result in a failure to C<login()> later.
+
+=cut
 
 # Provide a simple single-argument ctor instead of default Moose one taking a
 # hash with all attributes values.
