@@ -63,10 +63,13 @@ use WebService::SlimTimer;
 my ($opt, $usage) = describe_options(
         '%c %o [start-date [end-date]]',
         [ 'task|t=s'    => 'Only report time spent on the specified task.' ],
+        [ 'version'     => 'Output program version and exit.' ],
         [ 'help'        => 'Print usage message and exit.' ]
     );
 
 print("Usage: $usage"), exit if $opt->help;
+print("WebService::SlimTimer version $WebService::SlimTimer::VERSION.\n"), exit
+    if $opt->version;
 
 my %range;
 if ( @ARGV > 2 ) {

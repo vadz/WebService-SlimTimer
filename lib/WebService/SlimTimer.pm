@@ -27,6 +27,13 @@ SlimTimer web site and then visit L<http://slimtimer.com/help/api>.
     # Or maybe even get rid of it now.
     $st->delete_task($task->id);
 
+=head1 VARIABLES
+
+This module define C<VERSION> and C<DEBUG> package variables. The first one is
+self-explanatory, the second one is 0 by default but can be set to 1 to trace
+all network requests done by this module. Setting it to 2 will also dump the
+requests (and replies) contents.
+
 =head1 SEE ALSO
 
 L<WebService::SlimTimer::Task>, L<WebService::SlimTimer::TimeEntry>
