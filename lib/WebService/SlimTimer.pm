@@ -63,11 +63,12 @@ use MooseX::Types::Moose qw(Int Str);
 use LWP::UserAgent;
 use YAML::XS;
 
-use debug;
-
 use WebService::SlimTimer::Task;
 use WebService::SlimTimer::TimeEntry;
 use WebService::SlimTimer::Types qw(TimeStamp OptionalTimeStamp);
+
+# VERSION
+our $DEBUG = 0;
 
 has api_key => ( is => 'ro', isa => Str, required => 1 );
 
@@ -77,6 +78,14 @@ has access_token => ( is => 'ro', isa => Str, writer => '_set_access_token',
     );
 
 has _user_agent => ( is => 'ro', builder => '_create_ua', lazy => 1 );
+
+# Returns just the first line of possibly multiline string passed as argument.
+sub _first_line
+{
+    my $text = shift;
+    $text =~ s/\n.*//s;
+    return $text;
+}
 
 # Return a string representation of a TimeStamp.
 method _format_time(TimeStamp $timestamp)
@@ -99,7 +108,8 @@ method _submit($req, Str $error)
 {
     my $res = $self->_user_agent->request($req);
 
-    debug::log(DateTime->now() . ": received " . $res->content) if DEBUG;
+    print DateTime->now() . ": received reply.\n" if $DEBUG;
+    print "Reply contents:\n" . $res->content . "\n" if $DEBUG >= 2;
 
     if ( !$res->is_success ) {
         die "$error: " . $res->status_line
@@ -120,7 +130,7 @@ method _request(Str $method, Str $url, Str :$error!, HashRef :$params)
           );
     my $req = HTTP::Request->new($method, $uri);
 
-    debug::log(DateTime->now() . ": about to request " . $req->as_string) if DEBUG;
+    print DateTime->now() . ": " . _first_line($req->as_string) . ".\n" if $DEBUG;
 
     $req->header(Accept => 'application/x-yaml');
 
@@ -140,9 +150,11 @@ method _post(Str $method, Str $url, HashRef $params, Str :$error!)
         $params->{'access_token'} = $self->access_token;
     }
 
+    print DateTime->now() . ": " . _first_line($req->as_string) . ".\n" if $DEBUG;
+
     $req->content(Dump($params));
 
-    debug::log(DateTime->now() . ": about to post " . $req->as_string) if DEBUG;
+    print "Parameters:\n" . $req->as_string . "\n" if $DEBUG >= 2;
 
     $req->header(Accept => 'application/x-yaml');
     $req->content_type('application/x-yaml');
