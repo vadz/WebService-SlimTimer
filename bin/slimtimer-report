@@ -66,11 +66,11 @@ my ($opt, $usage) = describe_options(
         [ 'help'        => 'Print usage message and exit.' ]
     );
 
-print($usage->text), exit if $opt->help;
+print("Usage: $usage"), exit if $opt->help;
 
 my %range;
 if ( @ARGV > 2 ) {
-    die "Too many arguments.\nUsage: " . $usage->text
+    die "Too many arguments.\nUsage: $usage"
 }
 
 if ( @ARGV > 0 ) {
