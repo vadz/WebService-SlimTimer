@@ -67,8 +67,7 @@ use warnings;
 use MooseX::Types::Moose qw(Bool Int Maybe Str);
 use WebService::SlimTimer::Types qw(TimeStamp);
 
-method BUILDARGS(ClassName $class: HashRef $desc)
-{
+method BUILDARGS(ClassName $class: HashRef $desc) {
     # We use a different (shorter) name for one of the attributes compared to
     # the YAML format, translate it on the fly.
     $desc->{duration} = delete $desc->{duration_in_seconds};

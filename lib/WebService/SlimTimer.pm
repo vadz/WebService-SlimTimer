@@ -83,24 +83,21 @@ sub _first_line
 }
 
 # Return a string representation of a TimeStamp.
-method _format_time(TimeStamp $timestamp)
-{
+method _format_time(TimeStamp $timestamp) {
     use DateTime::Format::RFC3339;
     return DateTime::Format::RFC3339->format_datetime($timestamp)
 }
 
 # Create the LWP object that we use. This is currently trivial but provides a
 # central point for customizing its creation later.
-method _create_ua()
-{
+method _create_ua() {
     my $ua = LWP::UserAgent->new;
     return $ua;
 }
 
 # Common part of _request() and _post(): submit the request and check that it
 # didn't fail.
-method _submit($req, Str $error)
-{
+method _submit($req, Str $error) {
     my $res = $self->_user_agent->request($req);
 
     print DateTime->now() . ": received reply.\n" if $DEBUG;
@@ -115,8 +112,7 @@ method _submit($req, Str $error)
 
 # A helper method for creating and submitting an HTTP request without
 # any body parameters, e.g. a GET or DELETE.
-method _request(Str $method, Str $url, Str :$error!, HashRef :$params)
-{
+method _request(Str $method, Str $url, Str :$error!, HashRef :$params) {
     my $uri = URI->new($url);
     $uri->query_form(
             api_key => $self->api_key,
@@ -133,8 +129,7 @@ method _request(Str $method, Str $url, Str :$error!, HashRef :$params)
 }
 
 # Another helper for POST and PUT requests.
-method _post(Str $method, Str $url, HashRef $params, Str :$error!)
-{
+method _post(Str $method, Str $url, HashRef $params, Str :$error!) {
     my $req = HTTP::Request->new($method, $url);
 
     $params->{'api_key'} = $self->api_key;
@@ -190,8 +185,7 @@ This method must be called before doing anything else with this object.
 
 =cut
 
-method login(Str $login, Str $password)
-{
+method login(Str $login, Str $password) {
     my $res = $self->_post(POST => 'http://slimtimer.com/users/token',
             { user => { email => $login, password => $password } },
             error => "Failed to login as \"$login\""
@@ -204,8 +198,7 @@ method login(Str $login, Str $password)
 
 # Helper for task-related methods: returns either the root tasks URI or the
 # URI for the given task if the task id is specified.
-method _get_tasks_uri(Int $task_id?)
-{
+method _get_tasks_uri(Int $task_id?) {
     my $uri = "http://slimtimer.com/users/$self->{user_id}/tasks";
     if ( defined $task_id ) {
         $uri .= "/$task_id"
@@ -230,8 +223,7 @@ See L<WebService::SlimTimer::Task> for the details of the returned objects.
 
 =cut
 
-method list_tasks(Bool $include_completed = 1)
-{
+method list_tasks(Bool $include_completed = 1) {
     my $tasks_entries = $self->_request(GET => $self->_get_tasks_uri,
                 params => {
                     show_completed => $include_completed ? 'yes' : 'no'
@@ -259,8 +251,7 @@ L<WebService::SlimTimer::Task> object on success.
 
 =cut
 
-method create_task(Str $name)
-{
+method create_task(Str $name) {
     my $res = $self->_post(POST => $self->_get_tasks_uri,
             { task => { name => $name } },
             error => "Failed to create task \"$name\""
@@ -278,8 +269,7 @@ L<list_tasks>).
 
 =cut
 
-method delete_task(Int $task_id)
-{
+method delete_task(Int $task_id) {
     $self->_request(DELETE => $self->_get_tasks_uri($task_id),
             error => "Failed to delete the task $task_id"
         );
@@ -296,8 +286,7 @@ be cached locally from a previous program execution, for example.
 
 =cut
 
-method get_task(Int $task_id)
-{
+method get_task(Int $task_id) {
     my $res = $self->_request(GET => $self->_get_tasks_uri($task_id),
             error => "Failed to find the task $task_id"
         );
@@ -313,8 +302,7 @@ Mark the task with the given id as being completed.
 
 =cut
 
-method complete_task(Int $task_id, TimeStamp $completed_on)
-{
+method complete_task(Int $task_id, TimeStamp $completed_on) {
     $self->_post(PUT => $self->_get_tasks_uri($task_id),
             { task => { completed_on => $self->_format_time($completed_on) } },
             error => "Failed to mark the task $task_id as completed"
@@ -325,8 +313,7 @@ method complete_task(Int $task_id, TimeStamp $completed_on)
 
 # Helper for time-entry-related methods: returns either the root time entries
 # URI or the URI for the given entry if the time entry id is specified.
-method _get_entries_uri(Int $entry_id?)
-{
+method _get_entries_uri(Int $entry_id?) {
     my $uri = "http://slimtimer.com/users/$self->{user_id}/time_entries";
     if ( defined $entry_id ) {
         $uri .= "/$entry_id"
@@ -339,8 +326,7 @@ method _get_entries_uri(Int $entry_id?)
 method _list_entries(
     Maybe[Int] $taskId,
     OptionalTimeStamp $start,
-    OptionalTimeStamp $end)
-{
+    OptionalTimeStamp $end) {
     my $uri = defined $taskId
                 ? $self->_get_tasks_uri($taskId) . "/time_entries"
                 : $self->_get_entries_uri;
@@ -384,8 +370,7 @@ the entries that begin after the start date and/or before the end one.
     );
 =cut
 
-method list_entries(TimeStamp :$start, TimeStamp :$end)
-{
+method list_entries(TimeStamp :$start, TimeStamp :$end) {
     return $self->_list_entries(undef, $start, $end);
 }
 
@@ -400,8 +385,7 @@ parameters to restrict the dates of the entries retrieved.
 
 =cut
 
-method list_task_entries(Int $taskId, TimeStamp :$start, TimeStamp :$end)
-{
+method list_task_entries(Int $taskId, TimeStamp :$start, TimeStamp :$end) {
     return $self->_list_entries($taskId, $start, $end);
 }
 
@@ -416,8 +400,7 @@ from a local cache.
 
 =cut
 
-method get_entry(Int $entryId)
-{
+method get_entry(Int $entryId) {
     my $res = $self->_request(GET => $self->_get_entries_uri($entryId),
                 error => "Failed to get the entry $entryId"
             );
@@ -443,8 +426,7 @@ Returns the entry that was created.
 
 =cut
 
-method create_entry(Int $taskId, TimeStamp $start, TimeStamp $end?)
-{
+method create_entry(Int $taskId, TimeStamp $start, TimeStamp $end?) {
     $end = DateTime->now if !defined $end;
 
     my $res = $self->_post(POST => $self->_get_entries_uri, {
@@ -472,8 +454,11 @@ Changes an existing time entry.
         );
 =cut
 
-method update_entry(Int $entry_id, Int $taskId, TimeStamp $start, TimeStamp $end)
-{
+method update_entry(
+    Int $entry_id,
+    Int $taskId,
+    TimeStamp $start,
+    TimeStamp $end) {
     $self->_post(PUT => $self->_get_entries_uri($entry_id), {
                 time_entry => {
                     task_id => $taskId,
@@ -494,8 +479,7 @@ Deletes a time entry.
 
 =cut
 
-method delete_entry(Int $entry_id)
-{
+method delete_entry(Int $entry_id) {
     $self->_request(DELETE => $self->_get_entries_uri($entry_id),
             error => "Failed to delete the entry $entry_id"
         );
